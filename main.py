@@ -21,15 +21,16 @@ def is_blacklisted(ip_address):
 
 # ask regular info
 tester_name = input("Whats your name? ").upper()
-location_info = input("is your headset NA / APJ / EU? ").upper()
+location_info = input("Is your headset NA / APJ / EU? ").upper()
 
 # check adb devices to see if the headset is connected
 print(f'\n---\nOkay, connect the Quest wired and click Allow when it asks you.\n\n'
       f'Also also, make sure this computer is on the SAME network as the quest. \n\n')
 
+
+print("Disconnecting previous sessions...")
+p = subprocess.Popen('adb disconnect', shell=True)
 while not device_connected:
-    print("disconnecting previous sessions...")
-    p = subprocess.Popen('adb disconnect', shell=True)
     p = subprocess.Popen("adb devices", shell=True, stdout=subprocess.PIPE).stdout.readlines()
     if len(p) > 2:
         quest_ip = subprocess.Popen("adb shell ip route", shell=True, stdout=subprocess.PIPE).stdout.readlines()[0].strip().split(b' ')[-1].decode('utf-8')
@@ -44,7 +45,7 @@ sleep(3)
 subprocess.Popen(f'adb connect {quest_ip}:5555', shell=True)
 sleep(5)
 
-print("Disconnect the quest now, I got it connected wirelessly.\n\n")
+print("Disconnect the Quest now, I got it connected wireless-ly.\n\n")
 
 while True:
     whois = []
@@ -63,14 +64,14 @@ while True:
 
     # get all the Net Name for the whois data
     for ip in connected_ips:
-        print(f'Finding out who {ip} is... ')
+        print(f'Finding out who {ip} is... \n')
         p = subprocess.Popen(f'whois {ip} | grep NetName', shell=True, stdout=subprocess.PIPE).stdout.readlines()[0]
         if p == b'\n':
             whois.append('NULL')
         else:
             whois.append(p.split()[-1].decode('utf-8'))
 
-    print(f'found the following connections: {whois}')
+    print(f'Found the following connections: {whois}\n')
 
     # ping all the IPs
     for ip in connected_ips:
@@ -91,14 +92,10 @@ while True:
     # write to the db
     if z:
         db.insert_many(db_data)
-        print(f'dumped loop {loop_count} with payload: {db_data} into db')
-        print(f'waiting 4 minutes to re-ping\n\n')
-        sleep(240)
+        print(f'Dumped loop {db_data} into db')
+        print(f'Waiting 5 minutes to re-ping\n\n')
+        sleep(300)
         loop_count += 1
     else:
         print(f'No data... Waiting 30 seconds')
         sleep(30)
-
-
-
-
