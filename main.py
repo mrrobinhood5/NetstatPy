@@ -28,25 +28,22 @@ print(f'\n---\nOkay, connect the Quest wired and click Allow when it asks you.\n
       f'Also also, make sure this computer is on the SAME network as the quest. \n\n')
 
 while not device_connected:
-    p = subprocess.Popen("adb devices", shell=True, stdout=subprocess.PIPE).stdout.readlines()[1]
-    if b'\tdevice\n' in p:
-        device_connected = True
-
-print('I found it, thank you. wait a bit..\n\n')
+    print("disconnecting previous sessions...")
+    p = subprocess.Popen('adb disconnect', shell=True)
+    p = subprocess.Popen("adb devices", shell=True, stdout=subprocess.PIPE).stdout.readlines()
+    if len(p) > 2:
+        quest_ip = subprocess.Popen("adb shell ip route", shell=True, stdout=subprocess.PIPE).stdout.readlines()[0].strip().split(b' ')[-1].decode('utf-8')
+        break
 
 # once it's connected do adb tcpip 5555
+print('I found it, thank you. wait a bit..\n\n')
 subprocess.Popen("adb tcpip 5555", shell=True)
 sleep(3)
 
-print('Figuring out your IP. This takes forever..\n\n')
-
-# then get the ip addy adb connect
-quest_ip = subprocess.Popen('adb shell ip a | grep "inet 192"', shell=True, stdout=subprocess.PIPE).stdout.readlines()[
-    0]
-quest_ip = quest_ip.split()[1].split(b'/')[0].decode('utf-8')
-
 # connect wireless tell it to disconnect headset
 subprocess.Popen(f'adb connect {quest_ip}:5555', shell=True)
+sleep(5)
+
 print("Disconnect the quest now, I got it connected wirelessly.\n\n")
 
 while True:
@@ -54,7 +51,8 @@ while True:
     pings = []
 
     # grab raw output from NETSTAT and cleanup raw
-    connected_ips = subprocess.Popen("adb shell netstat -tn | grep ESTABLISHED",
+    print(f'Grabbing Connections...')
+    connected_ips = subprocess.Popen(f"adb -s {quest_ip}:5555 shell netstat -tn | grep ESTABLISHED",
                                      shell=True, stdout=subprocess.PIPE).stdout.readlines()
     # split all lines into columns, remove ipv6S and remove duplicates
     connected_ips = set([x[4].split(b':')[0].decode('utf-8') for x in
@@ -77,7 +75,7 @@ while True:
     # ping all the IPs
     for ip in connected_ips:
         print(f'pinging ip {ip}..\n')
-        p = subprocess.Popen(f"adb shell ping -c 10 {ip}", shell=True, stdout=subprocess.PIPE).stdout.readlines()[-1]
+        p = subprocess.Popen(f"adb -s {quest_ip}:5555 shell ping -c 10 {ip}", shell=True, stdout=subprocess.PIPE).stdout.readlines()[-1]
         if p == b'\n':
             pings.append(0)
         else:
@@ -94,8 +92,13 @@ while True:
     if z:
         db.insert_many(db_data)
         print(f'dumped loop {loop_count} with payload: {db_data} into db')
+        print(f'waiting 4 minutes to re-ping\n\n')
+        sleep(240)
+        loop_count += 1
+    else:
+        print(f'No data... Waiting 30 seconds')
+        sleep(30)
 
-    # take a break
-    sleep(240)
-    print(f'waiting 4 minutes to re-ping\n\n')
-    loop_count += 1
+
+
+
